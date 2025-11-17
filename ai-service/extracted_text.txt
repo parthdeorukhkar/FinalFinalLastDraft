@@ -1,0 +1,49 @@
+PARTH  DEORUKHKAR 
++91 7276024483 | parthdeorukhkar2@gmail.com  | LinkedIn  | GitHub 
+Enthusiastic Software Developer skilled in Python, C++, and full-stack development. Passionate about building 
+scalable solutions, integrating APIs, and applying data-driven approaches to real-world problems. 
+ 
+EDUCATION  
+● B.E Electronics & Telecommunication (8.18)                                                 2026                                                               
+Thakur College of Engineering and Technology, Mumbai. 
+INTERNSHIP  
+● Python Programmer | Codtech IT Solutions  
+Developed and optimized scripts for data processing, automation, and analysis. Worked on real- world 
+projects, utilizing libraries such as Pandas, NumPy, and Matplotlib for data manipulation and visualization. 
+Collaborated with a team to debug and improve existing code, enhancing performance and efficiency. 
+Gained experience in integrating APIs and working with databases, contributing to the development of 
+scalable solutions.  
+PROJECTS  
+● Movie Recommendation System  
+o Built a content-based filtering recommendation model using TF-IDF.  
+o Deployed using Streamlit and hosted on Render.   
+● SQL Data Warehouse 
+o Designed a SQL data warehouse for Customer, Sales, Product, and Employee data. 
+o Implemented Star Schema with optimized ETL pipelines for efficient data processing.  
+● HR Automation System 
+o Built a system to automate resume screening and candidate shortlisting using machine learning. 
+o Utilized Python, NLP, and MySQL for data extraction, analysis, and storage. 
+o Streamlined HR processes, reducing manual effort and improving efficiency. 
+ 
+TECHNICAL SKILLS  SOFT SKILLS  
+● Frontend:  HTML, CSS, JavaScript . 
+● Programming Languages:  Python (NumPy, Pandas), C++. 
+● Database:  PostgreSQL, MySQL, MS-Access. 
+● Technologies:  Git, VS Code, Power BI, Tableau, Microsoft Office. 
+● Analytics & Visualization:  Data Analysis, Exploratory Data Analysis (EDA), 
+Data Visualization (Google Sheets, Looker Studio), Google Analytics (GA4) 
+ ● Adaptability and Flexibility 
+● Critical Thinking 
+● Curiosity and Lifelong Learning 
+● Emotional Intelligence  
+● Leadership  
+● Data Visualization 
+CERTIFICATIONS  
+● Exploratory Data Analysis for Machine Learning                                                                                     IBM  
+● Supervised Machine Learning: Regression and Classification                                           Deep Learning AI  
+● Fundamentals of Deep Learning                                                                                                          NVIDIA 
+● Building LLM Applications with Prompt Engineering                                                                           NVIDIA 
+EXTRA CURRICULAR  
+● Creative Team Lead, IEEE  
+● Creative Team Member, ABHIVARG  
+● Student Volunteer, Agastya Foundation (associated with JPMorgan) 

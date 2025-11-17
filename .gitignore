@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+.nyc_output
+coverage
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Production builds
+/frontend/build
+/backend/dist
+
+# Uploads
+uploads/
+*.pdf
+*.docx
+*.doc
+
+# Database
+*.sqlite
+*.db
+
+# OS
+Thumbs.db
+
+# Misc
+.cache
+temp/
+tmp/
+token.txt
+nul
+
+# Claude
+.claude/

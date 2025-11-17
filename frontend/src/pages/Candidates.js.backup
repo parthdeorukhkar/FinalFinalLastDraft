@@ -1,0 +1,1137 @@
+import React, { useState, useEffect } from 'react';
+import { candidateAPI, jobAPI, interviewAPI } from '../services/api';
+import { toast } from 'react-toastify';
+import { FiPlus, FiSearch, FiUser, FiMail, FiBriefcase, FiEdit, FiTrash2, FiEye, FiX, FiFile, FiRefreshCw, FiCalendar, FiCheck } from 'react-icons/fi';
+import ResumeUpload from '../components/ResumeUpload';
+
+const Candidates = () => {
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Bulk selection state
+  const [selectedCandidates, setSelectedCandidates] = useState([]);
+  const [showBulkScheduleModal, setShowBulkScheduleModal] = useState(false);
+
+  useEffect(() => {
+    fetchCandidates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, sortBy, sortOrder]);
+
+  const fetchCandidates = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        ...(statusFilter && { status: statusFilter }),
+        sortBy,
+        order: sortOrder
+      };
+      const response = await candidateAPI.getAll(params);
+      setCandidates(response.data.data.candidates || []);
+    } catch (error) {
+      console.error('Error fetching candidates:', error);
+      toast.error('Failed to load candidates');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this candidate?')) {
+      try {
+        await candidateAPI.delete(id);
+        toast.success('Candidate deleted successfully');
+        fetchCandidates();
+      } catch (error) {
+        toast.error('Failed to delete candidate');
+      }
+    }
+  };
+
+  const handleAnalyze = async (candidate) => {
+    try {
+      if (!candidate.appliedFor) {
+        toast.error('Cannot analyze: Candidate must be assigned to a job position');
+        return;
+      }
+
+      toast.info('Analyzing resume... This may take a moment');
+      await candidateAPI.analyze(candidate._id);
+      toast.success('Resume analyzed successfully!');
+      fetchCandidates();
+    } catch (error) {
+      console.error('Error analyzing candidate:', error);
+      toast.error(error.response?.data?.message || 'Failed to analyze resume');
+    }
+  };
+
+  const handleViewDetails = (candidate) => {
+    setSelectedCandidate(candidate);
+    setShowDetailModal(true);
+  };
+
+  // Bulk selection handlers
+  const handleSelectCandidate = (candidateId) => {
+    setSelectedCandidates(prev =>
+      prev.includes(candidateId)
+        ? prev.filter(id => id !== candidateId)
+        : [...prev, candidateId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedCandidates.length === filteredCandidates.length) {
+      setSelectedCandidates([]);
+    } else {
+      setSelectedCandidates(filteredCandidates.map(c => c._id));
+    }
+  };
+
+  const handleBulkSchedule = () => {
+    // Filter selected candidates to only those with applied positions
+    const validCandidates = filteredCandidates.filter(c =>
+      selectedCandidates.includes(c._id) && c.appliedFor
+    );
+
+    if (validCandidates.length === 0) {
+      toast.error('Please select candidates with assigned job positions');
+      return;
+    }
+
+    setShowBulkScheduleModal(true);
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'New': 'bg-blue-100 text-blue-800',
+      'Screening': 'bg-yellow-100 text-yellow-800',
+      'Shortlisted': 'bg-green-100 text-green-800',
+      'Interview Scheduled': 'bg-purple-100 text-purple-800',
+      'Interviewed': 'bg-indigo-100 text-indigo-800',
+      'Selected': 'bg-green-100 text-green-800',
+      'Rejected': 'bg-red-100 text-red-800',
+      'On Hold': 'bg-gray-100 text-gray-800'
+    };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getMatchScoreColor = (score) => {
+    if (score >= 80) return 'bg-green-100 text-green-800';
+    if (score >= 60) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
+  const filteredCandidates = candidates.filter(candidate =>
+    candidate.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    candidate.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
+          <p className="text-gray-600 mt-1">Manage and review job applicants</p>
+        </div>
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          <FiPlus className="mr-2" />
+          Add Candidate
+        </button>
+      </div>
+
+      {/* Bulk Actions Toolbar */}
+      {selectedCandidates.length > 0 && (
+        <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <FiCheck className="text-primary-600 mr-2" />
+              <span className="font-semibold text-primary-900">
+                {selectedCandidates.length} candidate{selectedCandidates.length > 1 ? 's' : ''} selected
+              </span>
+            </div>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleBulkSchedule}
+              className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <FiCalendar className="mr-2" />
+              Schedule Interviews
+            </button>
+            <button
+              onClick={() => setSelectedCandidates([])}
+              className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search */}
+          <div className="md:col-span-2">
+            <div className="relative">
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="">All Status</option>
+              <option value="New">New</option>
+              <option value="Screening">Screening</option>
+              <option value="Shortlisted">Shortlisted</option>
+              <option value="Interview Scheduled">Interview Scheduled</option>
+              <option value="Interviewed">Interviewed</option>
+              <option value="Selected">Selected</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+
+          {/* Sort */}
+          <div>
+            <select
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('-');
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="createdAt-desc">Newest First</option>
+              <option value="createdAt-asc">Oldest First</option>
+              <option value="matchScore-desc">Highest Score</option>
+              <option value="matchScore-asc">Lowest Score</option>
+              <option value="firstName-asc">Name A-Z</option>
+              <option value="firstName-desc">Name Z-A</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Candidates List */}
+      <div className="bg-white rounded-lg shadow">
+        {loading ? (
+          <div className="flex items-center justify-center p-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          </div>
+        ) : filteredCandidates.length === 0 ? (
+          <div className="text-center p-12">
+            <FiUser className="mx-auto text-gray-400 text-5xl mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No candidates found</h3>
+            <p className="text-gray-600 mb-4">Get started by adding your first candidate</p>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              <FiPlus className="mr-2" />
+              Add Candidate
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedCandidates.length === filteredCandidates.length && filteredCandidates.length > 0}
+                      onChange={handleSelectAll}
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Candidate
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Position
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Match Score
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Applied Date
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredCandidates.map((candidate) => (
+                  <tr key={candidate._id} className={`hover:bg-gray-50 ${selectedCandidates.includes(candidate._id) ? 'bg-primary-50' : ''}`}>
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedCandidates.includes(candidate._id)}
+                        onChange={() => handleSelectCandidate(candidate._id)}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center">
+                          <span className="text-primary-600 font-medium">
+                            {candidate.firstName?.[0]}{candidate.lastName?.[0]}
+                          </span>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {candidate.firstName} {candidate.lastName}
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center">
+                            <FiMail className="mr-1" size={12} />
+                            {candidate.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-900">
+                        <FiBriefcase className="mr-2 text-gray-400" />
+                        {candidate.appliedFor?.title || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {candidate.matchScore ? (
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getMatchScoreColor(candidate.matchScore)}`}>
+                          {candidate.matchScore}%
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not analyzed</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
+                        {candidate.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(candidate.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleViewDetails(candidate)}
+                        className="text-primary-600 hover:text-primary-900 mr-3"
+                        title="View Details"
+                      >
+                        <FiEye size={18} />
+                      </button>
+                      {candidate.appliedFor && (
+                        <button
+                          onClick={() => handleAnalyze(candidate)}
+                          className="text-green-600 hover:text-green-900 mr-3"
+                          title={candidate.matchScore ? "Re-analyze Resume" : "Analyze Resume"}
+                        >
+                          <FiRefreshCw size={18} />
+                        </button>
+                      )}
+                      {!candidate.appliedFor && (
+                        <span className="text-xs text-gray-400 mr-3" title="Assign to a job to enable analysis">
+                          No job assigned
+                        </span>
+                      )}
+                      <button
+                        onClick={() => toast.info('Edit functionality coming soon!')}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        title="Edit"
+                      >
+                        <FiEdit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(candidate._id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-sm text-gray-600">Total Candidates</div>
+          <div className="text-2xl font-bold text-gray-900 mt-1">{candidates.length}</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-sm text-gray-600">Shortlisted</div>
+          <div className="text-2xl font-bold text-green-600 mt-1">
+            {candidates.filter(c => c.status === 'Shortlisted').length}
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-sm text-gray-600">Interview Scheduled</div>
+          <div className="text-2xl font-bold text-purple-600 mt-1">
+            {candidates.filter(c => c.status === 'Interview Scheduled').length}
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="text-sm text-gray-600">Avg Match Score</div>
+          <div className="text-2xl font-bold text-primary-600 mt-1">
+            {candidates.length > 0
+              ? Math.round(candidates.reduce((sum, c) => sum + (c.matchScore || 0), 0) / candidates.length)
+              : 0}%
+          </div>
+        </div>
+      </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <ResumeUpload
+          onClose={() => setShowUploadModal(false)}
+          onSuccess={fetchCandidates}
+        />
+      )}
+
+      {/* Bulk Schedule Modal */}
+      {showBulkScheduleModal && (
+        <BulkScheduleModal
+          selectedCandidateIds={selectedCandidates}
+          candidates={filteredCandidates.filter(c => selectedCandidates.includes(c._id))}
+          onClose={() => {
+            setShowBulkScheduleModal(false);
+            setSelectedCandidates([]);
+          }}
+          onSuccess={() => {
+            fetchCandidates();
+            setShowBulkScheduleModal(false);
+            setSelectedCandidates([]);
+          }}
+        />
+      )}
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedCandidate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-start">
+              <div className="flex items-start space-x-4">
+                <div className="h-16 w-16 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-primary-600 font-bold text-2xl">
+                    {selectedCandidate.firstName?.[0]}{selectedCandidate.lastName?.[0]}
+                  </span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {selectedCandidate.firstName} {selectedCandidate.lastName}
+                  </h2>
+                  <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                    <div className="flex items-center">
+                      <FiMail className="mr-1" />
+                      {selectedCandidate.email}
+                    </div>
+                    {selectedCandidate.phone && (
+                      <div className="flex items-center">
+                        <FiBriefcase className="mr-1" />
+                        {selectedCandidate.phone}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-3 mt-3">
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedCandidate.status)}`}>
+                      {selectedCandidate.status}
+                    </span>
+                    {selectedCandidate.matchScore && (
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getMatchScoreColor(selectedCandidate.matchScore)}`}>
+                        {selectedCandidate.matchScore}% Match
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Application Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Applied For</div>
+                  <div className="font-semibold text-gray-900">
+                    {selectedCandidate.appliedFor?.title || 'N/A'}
+                  </div>
+                  {selectedCandidate.appliedFor?.department && (
+                    <div className="text-sm text-gray-600 mt-1">
+                      {selectedCandidate.appliedFor.department}
+                    </div>
+                  )}
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Application Date</div>
+                  <div className="font-semibold text-gray-900">
+                    {new Date(selectedCandidate.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Source</div>
+                  <div className="font-semibold text-gray-900">
+                    {selectedCandidate.source || 'Direct Upload'}
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Analysis Section */}
+              {(selectedCandidate.matchScore > 0 || selectedCandidate.aiSummary || (selectedCandidate.strengths && selectedCandidate.strengths.length > 0)) && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Analysis</h3>
+
+                  {/* Match Score Visualization */}
+                  {selectedCandidate.matchScore > 0 && (
+                    <div className="bg-gradient-to-r from-primary-50 to-primary-100 p-6 rounded-lg mb-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-primary-700 font-medium mb-1">Overall Match Score</div>
+                          <div className="text-4xl font-bold text-primary-900">
+                            {selectedCandidate.matchScore}%
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-primary-700">
+                            {selectedCandidate.matchScore >= 80 ? 'Excellent Match' :
+                             selectedCandidate.matchScore >= 60 ? 'Good Match' :
+                             selectedCandidate.matchScore >= 40 ? 'Fair Match' : 'Poor Match'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Strengths & Weaknesses */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {selectedCandidate.strengths && selectedCandidate.strengths.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                          <span className="text-green-600 mr-2">✓</span>
+                          Strengths
+                        </h4>
+                        <ul className="space-y-2">
+                          {selectedCandidate.strengths.map((strength, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="text-green-500 mr-2 mt-1">•</span>
+                              <span className="text-gray-700">{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {selectedCandidate.weaknesses && selectedCandidate.weaknesses.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                          <span className="text-orange-600 mr-2">!</span>
+                          Areas for Improvement
+                        </h4>
+                        <ul className="space-y-2">
+                          {selectedCandidate.weaknesses.map((weakness, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="text-orange-500 mr-2 mt-1">•</span>
+                              <span className="text-gray-700">{weakness}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AI Summary */}
+                  {selectedCandidate.aiSummary && (
+                    <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                      <h4 className="font-semibold text-gray-900 mb-2">AI Summary</h4>
+                      <p className="text-gray-700">{selectedCandidate.aiSummary}</p>
+                    </div>
+                  )}
+
+                  {/* Recommended Job Roles */}
+                  {selectedCandidate.recommendedRoles && selectedCandidate.recommendedRoles.length > 0 && (
+                    <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-lg">
+                      <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                        <span className="text-purple-600 mr-2">💼</span>
+                        Recommended Job Roles
+                      </h4>
+                      <div className="space-y-3">
+                        {selectedCandidate.recommendedRoles.map((role, index) => (
+                          <div key={index} className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <h5 className="font-semibold text-gray-900">{role.role}</h5>
+                                <p className="text-sm text-gray-600 mt-1">{role.description}</p>
+                              </div>
+                              <div className="ml-4 flex-shrink-0">
+                                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100">
+                                  <span className="text-xl font-bold text-purple-700">
+                                    {role.matchPercentage}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-700 mb-2">{role.reason}</p>
+                            {role.matchedSkills && role.matchedSkills.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {role.matchedSkills.map((skill, skillIndex) => (
+                                  <span
+                                    key={skillIndex}
+                                    className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium"
+                                  >
+                                    {skill}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Skills */}
+              {selectedCandidate.skills && selectedCandidate.skills.length > 0 && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Skills</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCandidate.skills.map((skill, index) => (
+                      <div
+                        key={index}
+                        className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                      >
+                        {skill.name}
+                        {skill.proficiency && (
+                          <span className="ml-2 text-blue-600">
+                            ({skill.proficiency})
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Experience */}
+              {selectedCandidate.experience && selectedCandidate.experience.length > 0 && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Work Experience</h3>
+                  <div className="space-y-4">
+                    {selectedCandidate.experience.map((exp, index) => (
+                      <div key={index} className="flex">
+                        <div className="flex-shrink-0 w-2 bg-primary-500 rounded-full mr-4"></div>
+                        <div className="flex-grow pb-4">
+                          <h4 className="font-semibold text-gray-900">{exp.position || exp.title}</h4>
+                          <div className="text-primary-600 font-medium">{exp.company}</div>
+                          {exp.duration && (
+                            <div className="text-sm text-gray-600 mt-1">{exp.duration}</div>
+                          )}
+                          {exp.description && (
+                            <p className="text-gray-700 mt-2">{exp.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Education */}
+              {selectedCandidate.education && selectedCandidate.education.length > 0 && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Education</h3>
+                  <div className="space-y-4">
+                    {selectedCandidate.education.map((edu, index) => (
+                      <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                        <h4 className="font-semibold text-gray-900">{edu.degree}</h4>
+                        {edu.field && (
+                          <div className="text-gray-700 mt-1">{edu.field}</div>
+                        )}
+                        <div className="text-primary-600 font-medium mt-1">{edu.institution}</div>
+                        {edu.year && (
+                          <div className="text-sm text-gray-600 mt-1">{edu.year}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Resume Link */}
+              {selectedCandidate.resumeUrl && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Resume</h3>
+                  <a
+                    href={`http://localhost:5000/${selectedCandidate.resumeUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    <FiFile className="mr-2" />
+                    View Resume
+                  </a>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="border-t pt-6 flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDetailModal(false)}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    toast.info('Edit functionality coming soon!');
+                  }}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center"
+                >
+                  <FiEdit className="mr-2" />
+                  Edit Candidate
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Bulk Schedule Modal Component
+const BulkScheduleModal = ({ selectedCandidateIds, candidates, onClose, onSuccess }) => {
+  const [jobs, setJobs] = useState([]);
+  const [formData, setFormData] = useState({
+    job: '',
+    type: 'Video',
+    startDate: '',
+    startTime: '',
+    duration: 60,
+    intervalMinutes: 60,
+    meetingLink: '',
+    location: '',
+    interviewers: [{ name: '', role: '' }],
+    notes: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    try {
+      const response = await jobAPI.getAll({ status: 'Open' });
+      setJobs(response.data.data.jobs || []);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      toast.error('Failed to load jobs');
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleInterviewerChange = (index, field, value) => {
+    const newInterviewers = [...formData.interviewers];
+    newInterviewers[index][field] = value;
+    setFormData(prev => ({ ...prev, interviewers: newInterviewers }));
+  };
+
+  const addInterviewer = () => {
+    setFormData(prev => ({
+      ...prev,
+      interviewers: [...prev.interviewers, { name: '', role: '' }]
+    }));
+  };
+
+  const removeInterviewer = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      interviewers: prev.interviewers.filter((_, i) => i !== index)
+    }));
+  };
+
+  const generateTimeSlots = () => {
+    const slots = [];
+    const baseDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
+
+    candidates.forEach((candidate, index) => {
+      const slotTime = new Date(baseDateTime.getTime() + (index * formData.intervalMinutes * 60000));
+      slots.push({
+        candidate: candidate._id,
+        job: formData.job || candidate.appliedFor._id,
+        scheduledDate: slotTime.toISOString(),
+        time: slotTime.toTimeString().slice(0, 5),
+        candidateName: `${candidate.firstName} ${candidate.lastName}`
+      });
+    });
+
+    return slots;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validation
+    if (!formData.startDate || !formData.startTime) {
+      toast.error('Please select start date and time');
+      return;
+    }
+
+    if (formData.type === 'Video' && !formData.meetingLink) {
+      toast.error('Meeting link is required for video interviews');
+      return;
+    }
+
+    if (formData.type === 'In-Person' && !formData.location) {
+      toast.error('Location is required for in-person interviews');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const timeSlots = generateTimeSlots();
+
+      // Create interviews for each candidate
+      const promises = timeSlots.map(slot => {
+        return interviewAPI.create({
+          candidate: slot.candidate,
+          job: slot.job,
+          scheduledDate: slot.scheduledDate,
+          duration: formData.duration,
+          type: formData.type,
+          meetingLink: formData.meetingLink,
+          location: formData.location,
+          interviewers: formData.interviewers.filter(i => i.name && i.role),
+          notes: formData.notes
+        });
+      });
+
+      await Promise.all(promises);
+
+      toast.success(`Successfully scheduled ${timeSlots.length} interviews!`);
+      onSuccess();
+    } catch (error) {
+      console.error('Error scheduling interviews:', error);
+      toast.error(error.response?.data?.message || 'Failed to schedule interviews');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const timeSlots = formData.startDate && formData.startTime ? generateTimeSlots() : [];
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Schedule Bulk Interviews ({candidates.length} candidates)
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <FiX size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Job Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Job Position <span className="text-gray-400">(Optional - will use candidate's applied position if not selected)</span>
+            </label>
+            <select
+              name="job"
+              value={formData.job}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Use each candidate's applied position</option>
+              {jobs.map(job => (
+                <option key={job._id} value={job._id}>
+                  {job.title} - {job.department}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Interview Type */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Interview Type *
+              </label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="Video">Video Interview</option>
+                <option value="In-Person">In-Person</option>
+                <option value="Phone">Phone</option>
+                <option value="Technical">Technical Assessment</option>
+                <option value="HR">HR Round</option>
+                <option value="Final">Final Round</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Duration (minutes) *
+              </label>
+              <input
+                type="number"
+                name="duration"
+                value={formData.duration}
+                onChange={handleChange}
+                min="15"
+                max="240"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          </div>
+
+          {/* Scheduling */}
+          <div className="bg-primary-50 p-4 rounded-lg space-y-4">
+            <h3 className="font-semibold text-gray-900">Interview Scheduling</h3>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Date *
+                </label>
+                <input
+                  type="date"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Time *
+                </label>
+                <input
+                  type="time"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Interval (minutes) *
+                </label>
+                <input
+                  type="number"
+                  name="intervalMinutes"
+                  value={formData.intervalMinutes}
+                  onChange={handleChange}
+                  min="15"
+                  max="240"
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+
+            {/* Time Slot Preview */}
+            {timeSlots.length > 0 && (
+              <div className="mt-4 bg-white p-4 rounded-lg border border-primary-200">
+                <h4 className="font-semibold text-gray-900 mb-3">Generated Time Slots:</h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {timeSlots.map((slot, index) => (
+                    <div key={index} className="flex justify-between items-center text-sm py-2 px-3 bg-gray-50 rounded">
+                      <span className="font-medium text-gray-900">{slot.candidateName}</span>
+                      <span className="text-gray-600">
+                        {new Date(slot.scheduledDate).toLocaleDateString()} at {slot.time}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Meeting Details */}
+          {formData.type === 'Video' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Meeting Link *
+              </label>
+              <input
+                type="url"
+                name="meetingLink"
+                value={formData.meetingLink}
+                onChange={handleChange}
+                placeholder="https://meet.google.com/..."
+                required={formData.type === 'Video'}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          )}
+
+          {formData.type === 'In-Person' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location *
+              </label>
+              <input
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="Office address or room number"
+                required={formData.type === 'In-Person'}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          )}
+
+          {/* Interviewers */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Interviewers
+            </label>
+            {formData.interviewers.map((interviewer, index) => (
+              <div key={index} className="grid grid-cols-12 gap-2 mb-2">
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={interviewer.name}
+                  onChange={(e) => handleInterviewerChange(index, 'name', e.target.value)}
+                  className="col-span-5 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Role"
+                  value={interviewer.role}
+                  onChange={(e) => handleInterviewerChange(index, 'role', e.target.value)}
+                  className="col-span-5 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+                {index > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => removeInterviewer(index)}
+                    className="col-span-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addInterviewer}
+              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+            >
+              + Add Interviewer
+            </button>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Notes (applied to all interviews)
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows="3"
+              placeholder="Any additional notes for these interviews..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Scheduling...
+                </>
+              ) : (
+                <>
+                  <FiCalendar className="mr-2" />
+                  Schedule {candidates.length} Interviews
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Candidates;

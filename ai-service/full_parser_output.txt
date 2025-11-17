@@ -1,0 +1,71 @@
+Testing Resume Parser
+Resume file: C:\Users\parth\Desktop\FinalYearFinalProjectLastDraft\backend\uploads\resumes\1762426725863-933096751.pdf
+
+Resume parser initialized (enhanced mode)
+Parsing resume: C:\Users\parth\Desktop\FinalYearFinalProjectLastDraft\backend\uploads\resumes\1762426725863-933096751.pdf
+Extracted 17 skills
+Extracted 1 work experiences
+Extracted 1 education entries
+WORK EXPERIENCE:
+[
+  {
+    "position": "Python Programmer",
+    "company": "Codtech IT Solutions",
+    "duration": "",
+    "description": "Developed and optimized scripts for data processing, automation, and analysis. Worked on real- world"
+  }
+]
+
+EDUCATION:
+[
+  {
+    "degree": "B.E Electronics & Telecommunication",
+    "institution": "Thakur College of Engineering and Technology, Mumbai",
+    "field": "",
+    "graduationYear": 2026
+  }
+]
+
+SKILLS (first 10):
+[
+  {
+    "name": "Python",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Java",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Javascript",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Sql",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Postgresql",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Mysql",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Git",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Machine Learning",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Deep Learning",
+    "proficiency": "Intermediate"
+  },
+  {
+    "name": "Nlp",
+    "proficiency": "Intermediate"
+  }
+]

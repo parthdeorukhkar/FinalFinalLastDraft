@@ -1,0 +1,27 @@
+fastapi
+uvicorn
+python-dotenv
+pydantic
+
+# NLP and AI - Skip Spacy for now, will install manually
+# spacy
+langchain
+openai
+tiktoken
+
+# PDF and Document Processing
+pypdf2
+pdfplumber
+python-docx
+
+# Data Processing - Let pip choose compatible versions
+# pandas
+# numpy
+# scikit-learn
+
+# Vector Database - Skip for now
+# chromadb
+
+# HTTP Client
+httpx
+requests
