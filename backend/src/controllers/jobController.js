@@ -4,7 +4,9 @@ exports.getAllJobs = async (req, res, next) => {
   try {
     const { status = 'Open', page = 1, limit = 10 } = req.query;
 
-    const query = status ? { status } : {};
+    // Filter by admin who posted them
+    const query = { postedBy: req.user.id };
+    if (status) query.status = status;
     const total = await Job.countDocuments(query);
 
     const jobs = await Job.find(query)
@@ -26,7 +28,10 @@ exports.getAllJobs = async (req, res, next) => {
 
 exports.getJobById = async (req, res, next) => {
   try {
-    const job = await Job.findById(req.params.id).populate('postedBy shortlistedCandidates');
+    const job = await Job.findOne({
+      _id: req.params.id,
+      postedBy: req.user.id
+    }).populate('postedBy shortlistedCandidates');
     if (!job) {
       return res.status(404).json({ status: 'error', message: 'Job not found' });
     }
@@ -48,7 +53,11 @@ exports.createJob = async (req, res, next) => {
 
 exports.updateJob = async (req, res, next) => {
   try {
-    const job = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const job = await Job.findOneAndUpdate(
+      { _id: req.params.id, postedBy: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
     if (!job) {
       return res.status(404).json({ status: 'error', message: 'Job not found' });
     }
@@ -60,7 +69,10 @@ exports.updateJob = async (req, res, next) => {
 
 exports.deleteJob = async (req, res, next) => {
   try {
-    const job = await Job.findByIdAndDelete(req.params.id);
+    const job = await Job.findOneAndDelete({
+      _id: req.params.id,
+      postedBy: req.user.id
+    });
     if (!job) {
       return res.status(404).json({ status: 'error', message: 'Job not found' });
     }

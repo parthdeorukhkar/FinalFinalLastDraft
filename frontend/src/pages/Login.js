@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -7,8 +7,19 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAdmin, isApplicant } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (isAdmin) {
+        navigate('/dashboard');
+      } else if (isApplicant) {
+        navigate('/applicant/dashboard');
+      }
+    }
+  }, [isAuthenticated, isAdmin, isApplicant, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,7 +29,7 @@ const Login = () => {
 
     if (result.success) {
       toast.success('Login successful!');
-      navigate('/dashboard');
+      // Navigation will be handled by useEffect based on role
     } else {
       toast.error(result.error || 'Login failed');
     }
@@ -72,9 +83,15 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-3">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Demo Credentials: admin@hr.com / password123
+            Don't have an account?{' '}
+            <Link to="/register" className="text-primary-600 dark:text-primary-400 hover:underline">
+              Register as Applicant
+            </Link>
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">
+            Admin? Contact your administrator for access.
           </p>
         </div>
       </div>

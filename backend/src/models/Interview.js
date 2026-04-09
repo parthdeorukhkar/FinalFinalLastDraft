@@ -76,6 +76,12 @@ const interviewSchema = new mongoose.Schema({
   // Notes
   notes: String,
 
+  // Ownership - which admin created this interview
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+
 }, {
   timestamps: true
 });

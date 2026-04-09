@@ -24,7 +24,7 @@ router.put('/:id', candidateController.updateCandidate);
 
 // DELETE candidate
 router.delete('/:id',
-  authorize('Admin', 'HR Manager'),
+  authorize('admin'),
   candidateController.deleteCandidate
 );
 

@@ -46,6 +46,7 @@ app.use('/api/applications', require('./routes/applicationRoutes'));
 app.use('/api/interviews', require('./routes/interviewRoutes'));
 app.use('/api/emails', require('./routes/emailRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
+app.use('/api/applicant', require('./routes/applicantRoutes'));
 
 // 404 Handler
 app.use((req, res) => {

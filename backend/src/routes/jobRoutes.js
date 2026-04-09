@@ -7,8 +7,8 @@ router.use(protect);
 
 router.get('/', jobController.getAllJobs);
 router.get('/:id', jobController.getJobById);
-router.post('/', authorize('Admin', 'HR Manager'), jobController.createJob);
-router.put('/:id', authorize('Admin', 'HR Manager'), jobController.updateJob);
-router.delete('/:id', authorize('Admin', 'HR Manager'), jobController.deleteJob);
+router.post('/', authorize('admin'), jobController.createJob);
+router.put('/:id', authorize('admin'), jobController.updateJob);
+router.delete('/:id', authorize('admin'), jobController.deleteJob);
 
 module.exports = router;

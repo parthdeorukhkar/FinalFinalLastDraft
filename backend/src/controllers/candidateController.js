@@ -9,8 +9,8 @@ exports.getAllCandidates = async (req, res, next) => {
   try {
     const { status, job, sortBy = 'createdAt', order = 'desc', page = 1, limit = 10 } = req.query;
 
-    // Build query
-    const query = {};
+    // Build query - filter by admin who created them
+    const query = { createdBy: req.user.id };
     if (status) query.status = status;
     if (job) query.appliedFor = job;
 
@@ -47,7 +47,10 @@ exports.getAllCandidates = async (req, res, next) => {
 // @access  Private
 exports.getCandidateById = async (req, res, next) => {
   try {
-    const candidate = await Candidate.findById(req.params.id)
+    const candidate = await Candidate.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id
+    })
       .populate('appliedFor')
       .populate('interviews');
 
@@ -103,7 +106,8 @@ exports.createCandidate = async (req, res, next) => {
       email,
       phone,
       source: source || 'Direct Upload',
-      resumeUrl: req.file.path
+      resumeUrl: req.file.path,
+      createdBy: req.user.id
     };
 
     // Only add appliedFor if provided
@@ -139,8 +143,8 @@ exports.createCandidate = async (req, res, next) => {
 // @access  Private
 exports.updateCandidate = async (req, res, next) => {
   try {
-    const candidate = await Candidate.findByIdAndUpdate(
-      req.params.id,
+    const candidate = await Candidate.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user.id },
       req.body,
       { new: true, runValidators: true }
     );
@@ -168,7 +172,10 @@ exports.updateCandidate = async (req, res, next) => {
 // @access  Private (Admin, HR Manager only)
 exports.deleteCandidate = async (req, res, next) => {
   try {
-    const candidate = await Candidate.findById(req.params.id);
+    const candidate = await Candidate.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id
+    });
 
     if (!candidate) {
       return res.status(404).json({
@@ -202,7 +209,10 @@ exports.deleteCandidate = async (req, res, next) => {
 // @access  Private
 exports.analyzeCandidate = async (req, res, next) => {
   try {
-    const candidate = await Candidate.findById(req.params.id).populate('appliedFor');
+    const candidate = await Candidate.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id
+    }).populate('appliedFor');
 
     if (!candidate) {
       return res.status(404).json({
@@ -257,8 +267,8 @@ exports.updateCandidateStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
 
-    const candidate = await Candidate.findByIdAndUpdate(
-      req.params.id,
+    const candidate = await Candidate.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user.id },
       { status },
       { new: true, runValidators: true }
     );
@@ -286,7 +296,10 @@ exports.updateCandidateStatus = async (req, res, next) => {
 // @access  Private
 exports.getCandidatesByJob = async (req, res, next) => {
   try {
-    const candidates = await Candidate.find({ appliedFor: req.params.jobId })
+    const candidates = await Candidate.find({
+      appliedFor: req.params.jobId,
+      createdBy: req.user.id
+    })
       .sort({ matchScore: -1 });
 
     res.status(200).json({

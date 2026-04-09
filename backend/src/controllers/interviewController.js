@@ -5,7 +5,8 @@ const { sendInterviewInvite } = require('../services/emailService');
 
 exports.getAllInterviews = async (req, res, next) => {
   try {
-    const interviews = await Interview.find()
+    // Filter by admin who created them
+    const interviews = await Interview.find({ createdBy: req.user.id })
       .populate('candidate', 'firstName lastName email')
       .populate('job', 'title department')
       .sort({ scheduledDate: 1 });
@@ -18,7 +19,10 @@ exports.getAllInterviews = async (req, res, next) => {
 
 exports.getInterviewById = async (req, res, next) => {
   try {
-    const interview = await Interview.findById(req.params.id)
+    const interview = await Interview.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id
+    })
       .populate('candidate')
       .populate('job');
 
@@ -34,8 +38,11 @@ exports.getInterviewById = async (req, res, next) => {
 
 exports.scheduleInterview = async (req, res, next) => {
   try {
-    // Create the interview
-    const interview = await Interview.create(req.body);
+    // Create the interview with createdBy
+    const interview = await Interview.create({
+      ...req.body,
+      createdBy: req.user.id
+    });
 
     // Populate the interview with candidate and job details
     await interview.populate('candidate job');
@@ -94,10 +101,11 @@ exports.scheduleInterview = async (req, res, next) => {
 
 exports.updateInterview = async (req, res, next) => {
   try {
-    const interview = await Interview.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    const interview = await Interview.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
 
     if (!interview) {
       return res.status(404).json({ status: 'error', message: 'Interview not found' });
@@ -111,8 +119,8 @@ exports.updateInterview = async (req, res, next) => {
 
 exports.cancelInterview = async (req, res, next) => {
   try {
-    const interview = await Interview.findByIdAndUpdate(
-      req.params.id,
+    const interview = await Interview.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user.id },
       { status: 'Cancelled' },
       { new: true }
     );
@@ -133,7 +141,10 @@ exports.cancelInterview = async (req, res, next) => {
 
 exports.addFeedback = async (req, res, next) => {
   try {
-    const interview = await Interview.findById(req.params.id);
+    const interview = await Interview.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id
+    });
 
     if (!interview) {
       return res.status(404).json({ status: 'error', message: 'Interview not found' });

@@ -22,8 +22,16 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['Admin', 'HR Manager', 'Recruiter', 'Interviewer'],
-    default: 'Recruiter'
+    enum: ['admin', 'applicant'],
+    default: 'applicant'
+  },
+  // For applicants - link to their candidate profile
+  candidateProfile: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Candidate'
+  },
+  phone: {
+    type: String
   },
   department: {
     type: String

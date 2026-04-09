@@ -43,7 +43,24 @@ export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/update-profile', data),
-  changePassword: (data) => api.put('/auth/change-password', data)
+  changePassword: (data) => api.put('/auth/change-password', data),
+  registerAdmin: (userData) => api.post('/auth/register-admin', userData),
+  getAllAdmins: () => api.get('/auth/admins')
+};
+
+// Applicant APIs (for applicant users)
+export const applicantAPI = {
+  getJobs: () => api.get('/applicant/jobs'),
+  getJobById: (id) => api.get(`/applicant/jobs/${id}`),
+  getProfile: () => api.get('/applicant/profile'),
+  applyToJob: (jobId, formData) => api.post(`/applicant/apply/${jobId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  uploadResume: (formData) => api.post('/applicant/upload-resume', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getInterviews: () => api.get('/applicant/interviews'),
+  getStatus: () => api.get('/applicant/status')
 };
 
 // Candidate APIs

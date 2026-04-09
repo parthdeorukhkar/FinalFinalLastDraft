@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Candidate = require('../models/Candidate');
 const jwt = require('jsonwebtoken');
 
 // Generate JWT token
@@ -8,12 +9,12 @@ const generateToken = (id) => {
   });
 };
 
-// @desc    Register new user
+// @desc    Register new applicant
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role, department } = req.body;
+    const { name, email, password, phone } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -24,13 +25,29 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Create user
+    // Split name into first and last name for candidate profile
+    const nameParts = name.trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // Create candidate profile for the applicant
+    const candidate = await Candidate.create({
+      firstName,
+      lastName,
+      email,
+      phone,
+      status: 'New',
+      source: 'Self Registration'
+    });
+
+    // Create user with applicant role
     const user = await User.create({
       name,
       email,
       password,
-      role,
-      department
+      phone,
+      role: 'applicant',
+      candidateProfile: candidate._id
     });
 
     // Generate token
@@ -44,8 +61,70 @@ exports.register = async (req, res, next) => {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          candidateProfile: candidate._id
         }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Register new admin (by existing admin)
+// @route   POST /api/auth/register-admin
+// @access  Private (Admin only)
+exports.registerAdmin = async (req, res, next) => {
+  try {
+    const { name, email, password, department } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'User already exists with this email'
+      });
+    }
+
+    // Create admin user
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: 'admin',
+      department
+    });
+
+    res.status(201).json({
+      status: 'success',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          department: user.department
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get all admins (for admin management)
+// @route   GET /api/auth/admins
+// @access  Private (Admin only)
+exports.getAllAdmins = async (req, res, next) => {
+  try {
+    const admins = await User.find({ role: 'admin' }).select('-password');
+
+    res.status(200).json({
+      status: 'success',
+      results: admins.length,
+      data: {
+        admins
       }
     });
   } catch (error) {
@@ -101,7 +180,8 @@ exports.login = async (req, res, next) => {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          candidateProfile: user.candidateProfile
         }
       }
     });
@@ -117,10 +197,24 @@ exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
 
+    // Ensure role is set (for backward compatibility with existing users)
+    if (!user.role) {
+      user.role = 'admin'; // Existing users without role are admins
+      await user.save({ validateBeforeSave: false });
+    }
+
     res.status(200).json({
       status: 'success',
       data: {
-        user
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          department: user.department,
+          candidateProfile: user.candidateProfile,
+          isActive: user.isActive
+        }
       }
     });
   } catch (error) {

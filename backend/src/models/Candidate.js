@@ -9,7 +9,8 @@ const candidateSchema = new mongoose.Schema({
   },
   lastName: {
     type: String,
-    required: [true, 'Last name is required'],
+    required: false,
+    default: '',
     trim: true
   },
   email: {
@@ -21,13 +22,13 @@ const candidateSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: [true, 'Phone number is required']
+    required: false
   },
 
   // Resume Information
   resumeUrl: {
     type: String,
-    required: true
+    required: false
   },
   resumeText: {
     type: String // Extracted text from resume
@@ -80,7 +81,7 @@ const candidateSchema = new mongoose.Schema({
   // Application Status
   status: {
     type: String,
-    enum: ['New', 'Screening', 'Shortlisted', 'Interview Scheduled', 'Interviewed', 'Selected', 'Rejected', 'On Hold'],
+    enum: ['New', 'Applied', 'Screening', 'Shortlisted', 'Interview Scheduled', 'Interviewed', 'Selected', 'Rejected', 'On Hold'],
     default: 'New'
   },
 
@@ -114,10 +115,16 @@ const candidateSchema = new mongoose.Schema({
   // Metadata
   source: {
     type: String,
-    enum: ['Direct Upload', 'LinkedIn', 'Indeed', 'Referral', 'Other'],
+    enum: ['Direct Upload', 'LinkedIn', 'Indeed', 'Referral', 'Self Registration', 'Other'],
     default: 'Direct Upload'
   },
   notes: String,
+
+  // Ownership - which admin created/manages this candidate
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
 
 }, {
   timestamps: true
